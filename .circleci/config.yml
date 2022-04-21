@@ -1,0 +1,54 @@
+version: 2.1
+
+orbs:
+  maven: circleci/maven@0.0.12
+  aws-ecr: circleci/aws-ecr@7.3.0
+
+# Based on exaomple from https://github.com/CircleCI-Public/spring-petclinic/blob/master/.circleci/config.yml
+commands:
+  setup_docker:
+    steps:
+      - setup_remote_docker:
+          version: 19.03.13
+          # docker_layer_caching is disabled as it's not available on the free plan.  From https://circleci.com/docs/2.0/docker-layer-caching/
+          # docker_layer_caching: true
+  restore_cache_cmd:
+    steps:
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-
+  save_cache_cmd:
+    steps:
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+
+executors:
+  docker-executor:
+    docker:
+      - image: cimg/openjdk:15.0
+
+workflows:
+  build-and-push:
+    jobs:
+      - build-and-push:
+          context: 'default'
+
+
+jobs:
+  build-and-push:
+    executor: docker-executor
+    steps:
+      - setup_docker
+      - checkout
+      - restore_cache_cmd
+      - run: mvn spring-boot:build-image
+      - save_cache_cmd
+      # Push the image to aws-ecr
+      # Environment variable should be set up, see: https://circleci.com/docs/2.0/ecs-ecr/#prerequisites
+      - aws-ecr/ecr-login
+      - aws-ecr/push-image:
+          repo: dynamics365-oauth-proxy
+
