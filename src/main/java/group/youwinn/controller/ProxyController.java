@@ -42,23 +42,30 @@ public class ProxyController {
 		try {
 			token = (token == null) ? commonUtil.getToken() : token;
 			
-			response = Unirest.post(threepl_dynamics_url)
-			  .header("SOAPAction", soap_action_3pl)
+//			response = Unirest.post(threepl_dynamics_url)
+//			  .header("SOAPAction", soap_action_3pl)
+//			  .header("Authorization", "Bearer "+token)
+//			  .header("Content-Type", "application/json")
+//			  .body(requestbody)
+//			  .asString();
+//			
+			Unirest.setTimeouts(0, 0);
+			 response = Unirest.post(threepl_dynamics_url)
+			  .header("Content-Type", "application/json")
 			  .header("Authorization", "Bearer "+token)
-			  .header("Content-Type", "application/xml")
-			  .body(requestbody)
+			  .body(commonUtil.extractCDATAFromRequest(requestbody))
 			  .asString();
-
+			
 			if(response.getStatus() == 401) {
 				//generate fresh token
 				logger.info("Token expired generating fresh token.........");
 				token = commonUtil.getToken();
-				response = Unirest.post(threepl_dynamics_url)
-						  .header("SOAPAction", soap_action_3pl)
-						  .header("Authorization", "Bearer "+token)
-						  .header("Content-Type", "application/xml")
-						  .body(requestbody)
-						  .asString();
+				Unirest.setTimeouts(0, 0);
+				 response = Unirest.post(threepl_dynamics_url)
+				  .header("Content-Type", "application/json")
+				  .header("Authorization", "Bearer "+token)
+				  .body(commonUtil.extractCDATAFromRequest(requestbody))
+				  .asString();
 			}else if(response.getStatus() == 200) {
 				logger.info("Got success response from 3pl dynamics::"+response.getStatusText());	
 				
